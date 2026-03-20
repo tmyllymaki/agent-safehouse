@@ -1,0 +1,19 @@
+;; ---------------------------------------------------------------------------
+;; Toolchain: .NET
+;; .NET SDK, NuGet, dotnet tools, and template engine paths.
+;; ---------------------------------------------------------------------------
+
+(allow file-read*
+    (subpath "/usr/local/share/dotnet")                  ;; .NET SDK install root
+    (subpath "/etc/dotnet")                              ;; SDK install-location hint files
+)
+
+(allow file-read* file-write*
+    (home-subpath "/.dotnet")                            ;; .NET CLI data, tool shims
+    (home-subpath "/.nuget")                             ;; NuGet global packages cache
+    (home-subpath "/.local/share/NuGet")                 ;; NuGet XDG fallback
+    (home-subpath "/.templateengine")                    ;; dotnet new template cache
+    (home-subpath "/.config/NuGet")                      ;; NuGet config (XDG)
+    (home-subpath "/.local/share/dotnet-tools")          ;; Global dotnet tool binaries
+    (home-subpath "/Library/Caches/NuGet")               ;; NuGet macOS cache
+)
