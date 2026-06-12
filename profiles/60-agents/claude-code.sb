@@ -4,7 +4,7 @@
 ;; Source: 60-agents/claude-code.sb
 ;; $$command=claude,claude-code$$
 ;; Include browser-native-messaging for `claude --chrome` and microphone for voice mode.
-;; $$require=55-integrations-optional/keychain.sb,55-integrations-optional/browser-native-messaging.sb,55-integrations-optional/microphone.sb$$
+;; $$require=55-integrations-optional/keychain.sb,55-integrations-optional/browser-native-messaging.sb,55-integrations-optional/microphone.sb,55-integrations-optional/ccstatusline.sb$$
 ;; ---------------------------------------------------------------------------
 
 ;; - installer-managed binary path: ~/.local/bin/claude (symlink target under ~/.local/share/claude/versions/*)

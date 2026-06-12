@@ -1,0 +1,17 @@
+;; ---------------------------------------------------------------------------
+;; Integration: ccstatusline
+;; Config and cache paths for the ccstatusline status-line formatter
+;; (npm: `ccstatusline`, typically invoked as `bunx -y ccstatusline@latest`
+;; from Claude Code's `statusLine.command`).
+;; Source: 55-integrations-optional/ccstatusline.sb
+;; ---------------------------------------------------------------------------
+
+;; ccstatusline persists its settings under ~/.config/ccstatusline and writes
+;; cached state (block usage, compaction, skills) under ~/.cache/ccstatusline.
+;; Both directories are created on first run, so directory-level write access
+;; is required for `mkdir -p` and the initial settings.json bootstrap.
+
+(allow file-read* file-write*
+    (home-subpath "/.config/ccstatusline")
+    (home-subpath "/.cache/ccstatusline")
+)

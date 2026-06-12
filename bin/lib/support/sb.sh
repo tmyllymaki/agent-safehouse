@@ -21,6 +21,20 @@ safehouse_escape_for_sb() {
   printf '%s' "$value"
 }
 
+# Zero-fork variant: writes the escaped result into safehouse_escape_for_sb_result
+# instead of stdout. Returns 0 on success, 1 on validation failure.
+# Why: callers in tight loops previously did `x="$(safehouse_escape_for_sb "$y")"`,
+# forking a subshell per call. This avoids that.
+safehouse_escape_for_sb_result=""
+safehouse_escape_for_sb_into() {
+  local value="$1"
+
+  safehouse_validate_sb_string "$value" "SBPL string" || return 1
+  value="${value//\\/\\\\}"
+  value="${value//\"/\\\"}"
+  safehouse_escape_for_sb_result="$value"
+}
+
 safehouse_replace_literal_stream_required() {
   local from="$1"
   local to="$2"

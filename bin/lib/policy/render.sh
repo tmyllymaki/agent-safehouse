@@ -86,7 +86,8 @@ policy_render_list_profile_home_path_rules() {
     if [[ "$in_matching_block" -eq 0 ]]; then
       if [[ "$line" =~ ^[[:space:]]*\(allow[[:space:]]+ ]]; then
         operations="${line#*\(allow }"
-        operations="$(safehouse_trim_whitespace "$operations")"
+        operations="${operations#"${operations%%[![:space:]]*}"}"
+        operations="${operations%"${operations##*[![:space:]]}"}"
         in_matching_block=1
       fi
       continue
@@ -162,7 +163,8 @@ policy_render_emit_resolved_builtin_path_rule() {
 
   policy_render_write_line ";; #safehouse-test-id:resolved-built-in-path# Resolved target for built-in ${operation} path from ${profile_key}: ${original_path} -> ${resolved_path}"
   policy_render_emit_path_ancestor_literals "$resolved_path" "resolved built-in ${operation} path" || return 1
-  escaped_resolved_path="$(safehouse_escape_for_sb "$resolved_path")" || return 1
+  safehouse_escape_for_sb_into "$resolved_path" || return 1
+  escaped_resolved_path="$safehouse_escape_for_sb_result"
   policy_render_write_line "(allow ${operation} (${matcher} \"${escaped_resolved_path}\"))"
   policy_render_write_blank
 }
@@ -177,7 +179,8 @@ policy_render_emit_resolved_home_path_rule() {
 
   policy_render_write_line ";; #safehouse-test-id:resolved-home-path# Resolved target for home-scoped ${operations} path from ${profile_key}: ${original_path} -> ${resolved_path}"
   policy_render_emit_path_ancestor_literals "$resolved_path" "resolved home-scoped ${operations} path" || return 1
-  escaped_resolved_path="$(safehouse_escape_for_sb "$resolved_path")" || return 1
+  safehouse_escape_for_sb_into "$resolved_path" || return 1
+  escaped_resolved_path="$safehouse_escape_for_sb_result"
   policy_render_write_line "(allow ${operations} (${matcher} \"${escaped_resolved_path}\"))"
   policy_render_write_blank
 }
@@ -295,7 +298,8 @@ policy_render_append_resolved_base_profile() {
   local escaped_home escaped_workdir workdir_define
   local base_with_home resolved_base first_line remaining_lines
 
-  escaped_home="$(safehouse_escape_for_sb "$policy_req_home_dir")" || return 1
+  safehouse_escape_for_sb_into "$policy_req_home_dir" || return 1
+  escaped_home="$safehouse_escape_for_sb_result"
   base_with_home="$(policy_source_read_profile_content "$profile_key" | safehouse_replace_literal_stream_required "$HOME_DIR_TEMPLATE_TOKEN" "$escaped_home")" || {
     safehouse_fail \
       "Failed to resolve HOME_DIR placeholder in base profile: ${profile_key}" \
@@ -446,8 +450,9 @@ policy_render_build_path_ancestor_literals_block() {
     for path_part in "${path_parts[@]}"; do
       [[ -z "$path_part" ]] && continue
       current_path+="/${path_part}"
-      escaped_current_path="$(safehouse_escape_for_sb "$current_path")" || return 1
-      chunk+="$(printf '\n    (literal "%s")' "$escaped_current_path")"
+      safehouse_escape_for_sb_into "$current_path" || return 1
+      escaped_current_path="$safehouse_escape_for_sb_result"
+      chunk+=$'\n    (literal "'"$escaped_current_path"$'")'
     done
   fi
 
@@ -483,8 +488,9 @@ policy_render_emit_path_ancestor_metadata_literals() {
     for path_part in "${path_parts[@]}"; do
       [[ -z "$path_part" ]] && continue
       current_path+="/${path_part}"
-      escaped_current_path="$(safehouse_escape_for_sb "$current_path")" || return 1
-      chunk+="$(printf '\n    (literal "%s")' "$escaped_current_path")"
+      safehouse_escape_for_sb_into "$current_path" || return 1
+      escaped_current_path="$safehouse_escape_for_sb_result"
+      chunk+=$'\n    (literal "'"$escaped_current_path"$'")'
     done
   fi
 
@@ -507,7 +513,8 @@ policy_render_emit_extra_access_rules() {
   if [[ "$policy_plan_readonly_count" -gt 0 ]]; then
     for path in "${policy_plan_readonly_paths[@]}"; do
       policy_render_emit_path_ancestor_literals "$path" "extra read-only path" || return 1
-      escaped_path="$(safehouse_escape_for_sb "$path")" || return 1
+      safehouse_escape_for_sb_into "$path" || return 1
+      escaped_path="$safehouse_escape_for_sb_result"
       if [[ -d "$path" ]]; then
         policy_render_write_line "(allow file-read* (subpath \"${escaped_path}\"))"
       else
@@ -520,7 +527,8 @@ policy_render_emit_extra_access_rules() {
   if [[ "$policy_plan_rw_count" -gt 0 ]]; then
     for path in "${policy_plan_rw_paths[@]}"; do
       policy_render_emit_path_ancestor_literals "$path" "extra read/write path" || return 1
-      escaped_path="$(safehouse_escape_for_sb "$path")" || return 1
+      safehouse_escape_for_sb_into "$path" || return 1
+      escaped_path="$safehouse_escape_for_sb_result"
       if [[ -d "$path" ]]; then
         policy_render_write_line "(allow file-read* file-write* (subpath \"${escaped_path}\"))"
       else
@@ -555,7 +563,8 @@ policy_render_build_git_worktree_common_dir_rule_block() {
   printf '%s\n' ";; #safehouse-test-id:git-worktree-common-dir-grant# Allow linked git worktrees to read/write shared repository metadata."
   printf '%s\n' ";; Git stores refs/index/worktree bookkeeping under the common dir owned by the main checkout."
   policy_render_build_path_ancestor_literals_block "$path" "git worktree common dir" || return 1
-  escaped_path="$(safehouse_escape_for_sb "$path")" || return 1
+  safehouse_escape_for_sb_into "$path" || return 1
+  escaped_path="$safehouse_escape_for_sb_result"
   printf '(allow file-read* file-write* (subpath "%s"))\n\n' "$escaped_path"
 }
 
@@ -571,7 +580,8 @@ policy_render_build_git_linked_worktree_rule_block() {
   printf '%s\n' ";; Keep sibling worktrees read-only by default; the selected workdir retains its own read/write grant."
   printf '%s\n' ";; New worktrees created after launch are not added to this running policy."
   policy_render_build_path_ancestor_literals_block "$path" "linked git worktree" || return 1
-  escaped_path="$(safehouse_escape_for_sb "$path")" || return 1
+  safehouse_escape_for_sb_into "$path" || return 1
+  escaped_path="$safehouse_escape_for_sb_result"
   printf '(allow file-read* (subpath "%s"))\n\n' "$escaped_path"
 }
 
@@ -641,7 +651,8 @@ policy_render_emit_workdir_access() {
 
   policy_render_write_line ";; #safehouse-test-id:workdir-grant# Allow read/write access to the selected workdir."
   policy_render_emit_path_ancestor_literals "$path" "selected workdir" || return 1
-  escaped_path="$(safehouse_escape_for_sb "$path")" || return 1
+  safehouse_escape_for_sb_into "$path" || return 1
+  escaped_path="$safehouse_escape_for_sb_result"
   if [[ -d "$path" ]]; then
     policy_render_write_line "(allow file-read* file-write* (subpath \"${escaped_path}\"))"
   else

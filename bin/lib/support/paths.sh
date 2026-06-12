@@ -112,11 +112,32 @@ safehouse_normalize_abs_path_fallback() {
 
 safehouse_normalize_abs_path() {
   local input="$1"
+  local idx result
 
-  if command -v realpath >/dev/null 2>&1; then
-    realpath "$input"
-    return 0
+  for idx in "${!_safehouse_normalize_abs_path_cache_keys[@]}"; do
+    if [[ "${_safehouse_normalize_abs_path_cache_keys[$idx]}" == "$input" ]]; then
+      printf '%s' "${_safehouse_normalize_abs_path_cache_values[$idx]}"
+      return 0
+    fi
+  done
+
+  if [[ -n "${_safehouse_realpath_available:-}" ]]; then
+    # Match original behavior: discard realpath's exit code and stderr; if it
+    # fails, callers see empty output and continue (legacy semantics).
+    result="$(realpath "$input" 2>/dev/null || true)"
+  else
+    result="$(safehouse_normalize_abs_path_fallback "$input")" || return 1
   fi
 
-  safehouse_normalize_abs_path_fallback "$input"
+  _safehouse_normalize_abs_path_cache_keys+=("$input")
+  _safehouse_normalize_abs_path_cache_values+=("$result")
+  printf '%s' "$result"
 }
+
+_safehouse_normalize_abs_path_cache_keys=()
+_safehouse_normalize_abs_path_cache_values=()
+if command -v realpath >/dev/null 2>&1; then
+  _safehouse_realpath_available=1
+else
+  _safehouse_realpath_available=""
+fi

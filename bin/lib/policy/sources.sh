@@ -74,13 +74,36 @@ policy_source_collect_sorted_profile_keys_in_dir() {
 
 policy_source_read_profile_content() {
   local profile_key="$1"
-  local profile_path
+  local profile_path content idx
 
-  profile_path="$(policy_source_path_from_key "$profile_key")"
+  # Per-profile cache: first read materializes content, subsequent reads emit
+  # from the cache without forking cat. Each profile_key is consumed up to ~8
+  # times per run (metadata + render passes).
+  for idx in "${!_policy_source_content_cache_keys[@]}"; do
+    if [[ "${_policy_source_content_cache_keys[$idx]}" == "$profile_key" ]]; then
+      printf '%s' "${_policy_source_content_cache_values[$idx]}"
+      return 0
+    fi
+  done
+
+  if [[ "$profile_key" == profiles/* ]]; then
+    profile_path="${ROOT_DIR}/${profile_key}"
+  else
+    profile_path="$profile_key"
+  fi
+
   if [[ ! -f "$profile_path" ]]; then
     safehouse_fail "Missing profile module: ${profile_key}"
     return 1
   fi
 
-  cat "$profile_path"
+  # Bash-internal read; no cat fork. Strips a single trailing newline, but
+  # consumers tolerate that (while-read uses `|| [[ -n "$line" ]]`).
+  content="$(<"$profile_path")"
+  _policy_source_content_cache_keys+=("$profile_key")
+  _policy_source_content_cache_values+=("$content")
+  printf '%s' "$content"
 }
+
+_policy_source_content_cache_keys=()
+_policy_source_content_cache_values=()
